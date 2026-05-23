@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#F5F0E8">
+  <title>TRAMA</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #F5F0E8;
+      --bg2:         #EDE8E0;
+      --card:        #FEFCF8;
+      --text:        #1C1612;
+      --text2:       #6B6058;
+      --text3:       #9A9088;
+      --accent:      #A0714F;
+      --accent-bg:   #F0E6DC;
+      --border:      #E4DDD4;
+      --success:     #5A7A5A;
+      --success-bg:  #EAF0EA;
+      --warning:     #8A6820;
+      --warning-bg:  #F5EDD8;
+      --info:        #4A6A8A;
+      --info-bg:     #E4EDF5;
+      --danger:      #8A4040;
+      --danger-bg:   #F5E4E4;
+      --muted:       #7A7068;
+      --muted-bg:    #EDEBE8;
+      --radius:      14px;
+      --radius-sm:   8px;
+      --shadow:      0 1px 4px rgba(28,22,18,0.06), 0 4px 16px rgba(28,22,18,0.04);
+      --nav-h:       72px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', -apple-system, sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      overscroll-behavior: none;
+    }
+
+    #app {
+      max-width: 430px;
+      margin: 0 auto;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ── SCREENS ── */
+    .screen {
+      position: absolute;
+      inset: 0;
+      bottom: calc(var(--nav-h) + var(--safe-bottom));
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 24px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(12px);
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    .screen.active {
+      opacity: 1;
+      pointer-events: all;
+      transform: translateX(0);
+    }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(28,22,18,0.4);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+      z-index: 100;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal-sheet {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: var(--card);
+      border-radius: 20px 20px 0 0;
+      padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 8px);
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.32,0.72,0,1);
+      max-height: 90%;
+      overflow-y: auto;
+    }
+    .modal-overlay.open .modal-sheet { transform: translateY(0); }
+    .modal-handle {
+      width: 36px; height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 12px auto 0;
+    }
+
+    /* ── TYPE ── */
+    .page-title  { font-size: 22px; font-weight: 600; letter-spacing: -0.3px; }
+    .section-label {
+      font-size: 11px; font-weight: 500;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--text3); margin-bottom: 8px;
+    }
+
+    /* ── HEADER ── */
+    .page-header {
+      padding: 52px 20px 16px;
+      display: flex; justify-content: space-between; align-items: flex-end;
+    }
+    .page-header .date { font-size: 13px; color: var(--text3); }
+
+    /* ── STAT CARDS ── */
+    .stats-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px; padding: 0 16px; margin-bottom: 20px;
+    }
+    .stat-card {
+      background: var(--card); border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: 14px 16px;
+    }
+    .stat-card.wide { grid-column: 1 / -1; }
+    .stat-label  { font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+    .stat-value  { font-size: 24px; font-weight: 600; letter-spacing: -0.5px; }
+    .stat-value.accent { color: var(--accent); }
+    .stat-sub    { font-size: 12px; color: var(--text3); margin-top: 2px; }
+
+    /* ── BREAKDOWN ── */
+    .section { padding: 0 16px; margin-bottom: 20px; }
+    .breakdown-list {
+      background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden;
+    }
+    .breakdown-row {
+      display: flex; align-items: center;
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+    }
+    .breakdown-row:last-child { border-bottom: none; }
+    .breakdown-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent); margin-right: 10px; flex-shrink: 0;
+    }
+    .breakdown-name  { flex: 1; font-size: 14px; }
+    .breakdown-count { font-size: 13px; color: var(--text3); margin-right: 12px; }
+    .breakdown-rev   { font-size: 14px; font-weight: 500; min-width: 80px; text-align: right; }
+
+    /* ── ORDER CARDS ── */
+    .orders-list { padding: 0 16px; }
+    .order-card {
+      background: var(--card); border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: 14px 16px;
+      margin-bottom: 10px; cursor: pointer;
+      transition: transform 0.1s; -webkit-tap-highlight-color: transparent;
+    }
+    .order-card:active { transform: scale(0.99); }
+    .order-card-top {
+      display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;
+    }
+    .order-id   { font-size: 12px; color: var(--text3); font-weight: 500; }
+    .order-name { font-size: 15px; font-weight: 500; }
+    .order-card-bottom { display: flex; justify-content: space-between; align-items: center; }
+    .order-meta   { font-size: 13px; color: var(--text2); }
+    .order-amount { font-size: 15px; font-weight: 600; }
+
+    /* ── BADGES ── */
+    .badge {
+      display: inline-flex; align-items: center;
+      padding: 3px 10px; border-radius: 100px; font-size: 12px; font-weight: 500;
+    }
+    .badge-pending    { background: var(--warning-bg); color: var(--warning); }
+    .badge-processing { background: var(--info-bg);    color: var(--info);    }
+    .badge-packed     { background: var(--accent-bg);  color: var(--accent);  }
+    .badge-shipped    { background: var(--info-bg);    color: var(--info);    }
+    .badge-delivered  { background: var(--success-bg); color: var(--success); }
+    .badge-returned   { background: var(--danger-bg);  color: var(--danger);  }
+    .badge-cancelled  { background: var(--muted-bg);   color: var(--muted);   }
+
+    /* ── FILTER TABS ── */
+    .filter-tabs {
+      display: flex; gap: 6px; padding: 0 16px; margin-bottom: 14px;
+      overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    }
+    .filter-tabs::-webkit-scrollbar { display: none; }
+    .filter-tab {
+      flex-shrink: 0; padding: 6px 14px; border-radius: 100px;
+      font-size: 13px; font-weight: 500; border: none; cursor: pointer;
+      transition: all 0.15s; background: var(--card); color: var(--text2);
+      box-shadow: var(--shadow); font-family: inherit;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .filter-tab.active { background: var(--accent); color: white; }
+
+    /* ── FORM ── */
+    .form-body { padding: 0 16px; }
+    .form-group { margin-bottom: 14px; }
+    .form-label { font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 6px; display: block; }
+    .form-control {
+      width: 100%; padding: 11px 14px;
+      background: var(--card); border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm); font-family: inherit; font-size: 15px;
+      color: var(--text); outline: none; transition: border-color 0.15s; -webkit-appearance: none;
+    }
+    .form-control:focus { border-color: var(--accent); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    textarea.form-control { min-height: 80px; resize: none; }
+
+    .toggle-row {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--card); border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm); padding: 12px 14px;
+    }
+    .toggle-label-text { font-size: 15px; }
+    .toggle { position: relative; width: 44px; height: 26px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-track {
+      position: absolute; inset: 0; background: var(--border);
+      border-radius: 13px; transition: background 0.2s; cursor: pointer;
+    }
+    .toggle-track::after {
+      content: ''; position: absolute; left: 3px; top: 3px;
+      width: 20px; height: 20px; background: white; border-radius: 50%;
+      transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+    .toggle input:checked + .toggle-track { background: var(--accent); }
+    .toggle input:checked + .toggle-track::after { transform: translateX(18px); }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: flex; align-items: center; justify-content: center;
+      width: 100%; padding: 14px; border-radius: var(--radius-sm);
+      font-family: inherit; font-size: 15px; font-weight: 600;
+      border: none; cursor: pointer; transition: opacity 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active { opacity: 0.8; }
+    .btn-primary  { background: var(--accent); color: white; }
+    .btn-gap { margin-top: 8px; }
+
+    /* ── DETAIL ── */
+    .detail-header { padding: 20px 20px 16px; }
+    .detail-info-wrap {
+      background: var(--card); border-radius: var(--radius);
+      margin: 0 16px 16px; overflow: hidden;
+    }
+    .detail-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 16px; border-bottom: 1px solid var(--border);
+    }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-key { font-size: 13px; color: var(--text3); }
+    .detail-val { font-size: 14px; font-weight: 500; text-align: right; max-width: 60%; }
+
+    /* ── BOTTOM NAV ── */
+    .bottom-nav {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      height: calc(var(--nav-h) + var(--safe-bottom));
+      background: var(--card); border-top: 1px solid var(--border);
+      display: flex; align-items: flex-start; padding-top: 8px;
+      padding-bottom: var(--safe-bottom); z-index: 50;
+    }
+    .nav-item {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      gap: 3px; padding: 4px 0; cursor: pointer; color: var(--text3);
+      transition: color 0.15s; -webkit-tap-highlight-color: transparent;
+    }
+    .nav-item.active { color: var(--accent); }
+    .nav-item svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .nav-item span { font-size: 10px; font-weight: 500; }
+    .nav-add {
+      width: 48px; height: 48px; background: var(--accent); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; margin-top: -16px;
+      box-shadow: 0 4px 12px rgba(160,113,79,0.35);
+    }
+    .nav-add svg { stroke: white; stroke-width: 2.4; width: 20px; height: 20px; }
+
+    /* ── MISC ── */
+    .empty-state { text-align: center; padding: 64px 32px; color: var(--text3); }
+    .empty-state .icon { font-size: 36px; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- DASHBOARD -->
+  <div class="screen active" id="screen-dashboard">
+    <div class="page-header">
+      <div>
+        <div class="page-title">TRAMA</div>
+        <div class="date" id="dash-date"></div>
+      </div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card wide">
+        <div class="stat-label">Total Revenue</div>
+        <div class="stat-value accent" id="stat-revenue">—</div>
+        <div class="stat-sub" id="stat-sub"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Paid</div>
+        <div class="stat-value" id="stat-paid">—</div>
+        <div class="stat-sub">orders</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Unpaid</div>
+        <div class="stat-value" id="stat-unpaid">—</div>
+        <div class="stat-sub">orders</div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-label">By Platform</div>
+      <div class="breakdown-list" id="platform-list"></div>
+    </div>
+    <div class="section">
+      <div class="section-label">By Product</div>
+      <div class="breakdown-list" id="product-list"></div>
+    </div>
+  </div>
+
+  <!-- ORDERS -->
+  <div class="screen" id="screen-orders">
+    <div class="page-header">
+      <div class="page-title">Orders</div>
+    </div>
+    <div class="filter-tabs" id="filter-tabs"></div>
+    <div class="orders-list" id="orders-list"></div>
+  </div>
+
+  <!-- ADD ORDER -->
+  <div class="screen" id="screen-add">
+    <div class="page-header">
+      <div class="page-title">New Order</div>
+    </div>
+    <div class="form-body">
+      <div class="form-group">
+        <label class="form-label">Platform</label>
+        <select class="form-control" id="f-platform">
+          <option value="">Select platform</option>
+          <option>IG Direct</option><option>TikTok Shop</option>
+          <option>Shopee</option><option>Lazada</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Customer Name</label>
+          <input class="form-control" id="f-name" type="text" placeholder="Name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contact</label>
+          <input class="form-control" id="f-contact" type="text" placeholder="@ig or phone">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Product</label>
+          <select class="form-control" id="f-product">
+            <option value="">Select</option>
+            <option>Dogger</option><option>Filey</option><option>Roscoff</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Size</label>
+          <select class="form-control" id="f-size">
+            <option value="">Select</option>
+            <option>XS</option><option>S</option><option>M</option>
+            <option>L</option><option>XL</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Qty</label>
+          <input class="form-control" id="f-qty" type="number" value="1" min="1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Unit Price (THB)</label>
+          <input class="form-control" id="f-price" type="number" placeholder="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="toggle-row">
+          <span class="toggle-label-text">Free Shipping</span>
+          <label class="toggle">
+            <input type="checkbox" id="f-shipping">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="toggle-row">
+          <span class="toggle-label-text">Paid</span>
+          <label class="toggle">
+            <input type="checkbox" id="f-paid">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes (optional)</label>
+        <textarea class="form-control" id="f-notes" placeholder="Any notes..."></textarea>
+      </div>
+      <div class="form-group">
+        <button class="btn btn-primary" onclick="saveOrder()">Save Order</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ORDER DETAIL MODAL -->
+  <div class="modal-overlay" id="detail-overlay" onclick="closeDetail(event)">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="detail-header">
+        <div class="order-id" id="d-id"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+          <div class="page-title" id="d-name"></div>
+          <div id="d-badge"></div>
+        </div>
+        <div style="color:var(--text3);font-size:13px;margin-top:4px" id="d-platform"></div>
+      </div>
+      <div class="detail-info-wrap" id="d-info"></div>
+      <div style="padding:0 16px">
+        <div class="form-group">
+          <label class="form-label">Update Status</label>
+          <select class="form-control" id="d-status">
+            <option>Pending</option><option>Processing</option><option>Packed</option>
+            <option>Shipped</option><option>Delivered</option>
+            <option>Returned</option><option>Cancelled</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tracking No.</label>
+          <input class="form-control" id="d-tracking" type="text" placeholder="e.g. TH123456789">
+        </div>
+        <button class="btn btn-primary" onclick="updateOrder()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <div class="nav-item active" id="nav-dashboard" onclick="navigate('dashboard')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      <span>Overview</span>
+    </div>
+    <div class="nav-item" id="nav-orders" onclick="navigate('orders')">
+      <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="3" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="3" cy="18" r="1.2" fill="currentColor" stroke="none"/></svg>
+      <span>Orders</span>
+    </div>
+    <div class="nav-item" id="nav-add" onclick="navigate('add')">
+      <div class="nav-add">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </div>
+      <span style="margin-top:2px">Add</span>
+    </div>
+  </nav>
+</div>
+
+<script>
+// ─── DATA ────────────────────────────────────────────────────
+var SEED = [
+  {id:'ORD-001',date:'2026-05-20',platform:'IG Direct',  name:'Warin T.',  contact:'@warin.t',   product:'Dogger', size:'M', qty:1,price:890, freeShip:false,paid:true, status:'Delivered', tracking:'TH001234567',notes:''},
+  {id:'ORD-002',date:'2026-05-21',platform:'TikTok Shop',name:'Pakorn S.',contact:'0812345678',  product:'Roscoff',size:'L', qty:1,price:1490,freeShip:true, paid:true, status:'Shipped',   tracking:'TH002345678',notes:''},
+  {id:'ORD-003',date:'2026-05-22',platform:'IG Direct',  name:'Natcha P.',contact:'@natcha.p',  product:'Filey',  size:'S', qty:1,price:990, freeShip:false,paid:false,status:'Pending',   tracking:'',           notes:'Pending confirm'},
+  {id:'ORD-004',date:'2026-05-22',platform:'Shopee',     name:'Anon K.',  contact:'anon_k',     product:'Dogger', size:'XL',qty:2,price:890, freeShip:true, paid:true, status:'Processing',tracking:'',           notes:''},
+  {id:'ORD-005',date:'2026-05-23',platform:'Lazada',     name:'Mint W.',  contact:'mint.w',     product:'Roscoff',size:'M', qty:1,price:1490,freeShip:true, paid:true, status:'Packed',    tracking:'',           notes:''},
+];
+
+function loadOrders() {
+  var raw = localStorage.getItem('trama_orders');
+  if (raw) return JSON.parse(raw);
+  localStorage.setItem('trama_orders', JSON.stringify(SEED));
+  return JSON.parse(JSON.stringify(SEED));
+}
+function saveOrdersToStorage(orders) {
+  localStorage.setItem('trama_orders', JSON.stringify(orders));
+}
+
+// ─── STATE ───────────────────────────────────────────────────
+var currentScreen = 'dashboard';
+var filterStatus  = 'All';
+var selectedId    = null;
+
+// ─── NAVIGATE ────────────────────────────────────────────────
+function navigate(screen) {
+  ['dashboard','orders','add'].forEach(function(s) {
+    document.getElementById('screen-' + s).classList.toggle('active', s === screen);
+    var nav = document.getElementById('nav-' + s);
+    if (nav) nav.classList.toggle('active', s === screen);
+  });
+  currentScreen = screen;
+  if (screen === 'dashboard') renderDashboard();
+  if (screen === 'orders')    renderOrders();
+  if (screen === 'add')       resetForm();
+}
+
+// ─── DASHBOARD ───────────────────────────────────────────────
+function renderDashboard() {
+  var orders = loadOrders();
+  var d = new Date();
+  document.getElementById('dash-date').textContent =
+    d.toLocaleDateString('en-GB', {day:'numeric', month:'long', year:'numeric'});
+
+  var totalRev = orders.reduce(function(s,o){ return s + o.qty * o.price; }, 0);
+  var paid     = orders.filter(function(o){ return o.paid; }).length;
+  var unpaid   = orders.filter(function(o){ return !o.paid; }).length;
+
+  document.getElementById('stat-revenue').textContent = formatThb(totalRev);
+  document.getElementById('stat-sub').textContent     = orders.length + ' orders total';
+  document.getElementById('stat-paid').textContent    = paid;
+  document.getElementById('stat-unpaid').textContent  = unpaid;
+
+  var platColors = {
+    'IG Direct':'#A0714F', 'TikTok Shop':'#6B8F6B',
+    'Shopee':'#4A6A8A', 'Lazada':'#8A6820'
+  };
+  var platforms = ['IG Direct','TikTok Shop','Shopee','Lazada'];
+  document.getElementById('platform-list').innerHTML = platforms.map(function(p) {
+    var rows = orders.filter(function(o){ return o.platform === p; });
+    var rev  = rows.reduce(function(s,o){ return s + o.qty * o.price; }, 0);
+    return '<div class="breakdown-row">' +
+      '<div class="breakdown-dot" style="background:' + platColors[p] + '"></div>' +
+      '<div class="breakdown-name">' + p + '</div>' +
+      '<div class="breakdown-count">' + rows.length + ' orders</div>' +
+      '<div class="breakdown-rev">' + (rev ? formatThb(rev) : '—') + '</div></div>';
+  }).join('');
+
+  var products = ['Dogger','Filey','Roscoff'];
+  document.getElementById('product-list').innerHTML = products.map(function(p) {
+    var rows = orders.filter(function(o){ return o.product === p; });
+    var rev  = rows.reduce(function(s,o){ return s + o.qty * o.price; }, 0);
+    return '<div class="breakdown-row">' +
+      '<div class="breakdown-dot"></div>' +
+      '<div class="breakdown-name">' + p + '</div>' +
+      '<div class="breakdown-count">' + rows.length + ' orders</div>' +
+      '<div class="breakdown-rev">' + (rev ? formatThb(rev) : '—') + '</div></div>';
+  }).join('');
+}
+
+// ─── ORDERS ──────────────────────────────────────────────────
+var STATUSES = ['All','Pending','Processing','Packed','Shipped','Delivered','Returned','Cancelled'];
+
+function renderOrders() {
+  var orders = loadOrders();
+  document.getElementById('filter-tabs').innerHTML = STATUSES.map(function(s) {
+    return '<button class="filter-tab ' + (filterStatus === s ? 'active' : '') +
+      '" onclick="setFilter(\'' + s + '\')">' + s + '</button>';
+  }).join('');
+
+  var filtered = filterStatus === 'All'
+    ? orders
+    : orders.filter(function(o){ return o.status === filterStatus; });
+
+  var list = document.getElementById('orders-list');
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty-state"><div class="icon">📦</div><p>No orders found</p></div>';
+    return;
+  }
+  list.innerHTML = filtered.slice().reverse().map(function(o) {
+    return '<div class="order-card" onclick="openDetail(\'' + o.id + '\')">' +
+      '<div class="order-card-top"><div>' +
+        '<div class="order-id">' + o.id + ' · ' + o.platform + '</div>' +
+        '<div class="order-name">' + o.name + '</div>' +
+      '</div><span class="badge badge-' + o.status.toLowerCase() + '">' + o.status + '</span></div>' +
+      '<div class="order-card-bottom">' +
+        '<div class="order-meta">' + o.product + ' ' + o.size + ' x ' + o.qty + '</div>' +
+        '<div class="order-amount">' + formatThb(o.qty * o.price) + '</div>' +
+      '</div></div>';
+  }).join('');
+}
+
+function setFilter(s) { filterStatus = s; renderOrders(); }
+
+// ─── ADD ORDER ───────────────────────────────────────────────
+function resetForm() {
+  ['f-platform','f-product','f-size','f-name','f-contact','f-notes'].forEach(function(id) {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('f-qty').value = '1';
+  document.getElementById('f-price').value = '';
+  document.getElementById('f-shipping').checked = false;
+  document.getElementById('f-paid').checked = false;
+}
+
+function saveOrder() {
+  var platform = document.getElementById('f-platform').value;
+  var name     = document.getElementById('f-name').value.trim();
+  var product  = document.getElementById('f-product').value;
+  var size     = document.getElementById('f-size').value;
+  var qty      = parseInt(document.getElementById('f-qty').value) || 1;
+  var price    = parseFloat(document.getElementById('f-price').value) || 0;
+
+  if (!platform || !name || !product || !size || !price) {
+    alert('Please fill in all required fields.');
+    return;
+  }
+
+  var orders = loadOrders();
+  var newId  = 'ORD-' + pad(orders.length + 1, 3);
+  var today  = new Date().toISOString().split('T')[0];
+
+  orders.push({
+    id: newId, date: today, platform: platform,
+    name: name, contact: document.getElementById('f-contact').value.trim(),
+    product: product, size: size, qty: qty, price: price,
+    freeShip: document.getElementById('f-shipping').checked,
+    paid:     document.getElementById('f-paid').checked,
+    status: 'Pending', tracking: '',
+    notes: document.getElementById('f-notes').value.trim()
+  });
+
+  saveOrdersToStorage(orders);
+  navigate('orders');
+}
+
+// ─── ORDER DETAIL ────────────────────────────────────────────
+function openDetail(id) {
+  var orders = loadOrders();
+  var o = null;
+  for (var i = 0; i < orders.length; i++) { if (orders[i].id === id) { o = orders[i]; break; } }
+  if (!o) return;
+  selectedId = id;
+
+  document.getElementById('d-id').textContent       = o.id + ' · ' + o.date;
+  document.getElementById('d-name').textContent      = o.name;
+  document.getElementById('d-platform').textContent  = o.platform;
+  document.getElementById('d-badge').innerHTML =
+    '<span class="badge badge-' + o.status.toLowerCase() + '">' + o.status + '</span>';
+  document.getElementById('d-status').value   = o.status;
+  document.getElementById('d-tracking').value = o.tracking;
+
+  var rows = [
+    ['Product',       o.product + ' ' + o.size],
+    ['Quantity',      o.qty],
+    ['Unit Price',    formatThb(o.price)],
+    ['Subtotal',      formatThb(o.qty * o.price)],
+    ['Contact',       o.contact || '—'],
+    ['Free Shipping', o.freeShip ? 'Yes' : 'No'],
+    ['Payment',       o.paid ? 'Paid' : 'Unpaid'],
+    ['Notes',         o.notes || '—'],
+  ];
+  document.getElementById('d-info').innerHTML =
+    rows.map(function(r) {
+      return '<div class="detail-row">' +
+        '<div class="detail-key">' + r[0] + '</div>' +
+        '<div class="detail-val">' + r[1] + '</div></div>';
+    }).join('');
+
+  document.getElementById('detail-overlay').classList.add('open');
+}
+
+function closeDetail(e) {
+  if (e.target === document.getElementById('detail-overlay')) {
+    document.getElementById('detail-overlay').classList.remove('open');
+    selectedId = null;
+  }
+}
+
+function updateOrder() {
+  if (!selectedId) return;
+  var orders = loadOrders();
+  for (var i = 0; i < orders.length; i++) {
+    if (orders[i].id === selectedId) {
+      orders[i].status   = document.getElementById('d-status').value;
+      orders[i].tracking = document.getElementById('d-tracking').value.trim();
+      break;
+    }
+  }
+  saveOrdersToStorage(orders);
+  document.getElementById('detail-overlay').classList.remove('open');
+  selectedId = null;
+  renderOrders();
+}
+
+// ─── HELPERS ────────────────────────────────────────────────
+function formatThb(n) {
+  return 'THB ' + n.toLocaleString();
+}
+function pad(n, len) {
+  var s = String(n);
+  while (s.length < len) s = '0' + s;
+  return s;
+}
+
+// ─── INIT ────────────────────────────────────────────────────
+renderDashboard();
+</script>
+</body>
+</html>
